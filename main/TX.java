@@ -59,7 +59,7 @@ public class TX{
         int vertexCount = geom.getVertexCount();
         TexCoord2f[] texCoords = new TexCoord2f[vertexCount];
 
-        for (int i = 0; i < vertexCount; i++) {
+        for(int i = 0; i < vertexCount; i++){
             // Retrieve original texture coordinates
             TexCoord2f coord = new TexCoord2f();
             geom.getTextureCoordinate(0, i, coord);

@@ -7,7 +7,6 @@ package obj;
 
 import javax.media.j3d.TransformGroup;
 import main.TG;
-import main.TX;
 
 /**
  *
@@ -34,8 +33,16 @@ public class CafeWindow extends TransformGroup{
     }
     
     private void placePanel(TransformGroup dest, float x_offset){
-        TG.placeBox(dest, 0.32f, 0.06f, 0.06f, 0f+x_offset, 0.64f, 0f, 0, 0, 0, "white_metal.png");
-        TG.placeBox(dest, 0.06f, 0.64f, 0.06f, 0.32f+x_offset, 0.64f, 0f, 0, 0, 0, "white_metal.png");
-        TG.placeBox(dest, 0.06f, 0.64f, 0.06f, -0.32f+x_offset, 0.64f, 0f, 0, 0, 0, "white_metal.png");
+        TG.placeBox(dest, 0.32f, 0.06f, 0.05f, 0f+x_offset, 0.64f, 0f, 0, 0, 0, "white_metal.png");
+        TG.placeBox(dest, 0.05f, 0.64f, 0.05f, 0.32f+x_offset, 0.64f, 0f, 0, 0, 0, "white_metal.png");
+        TG.placeBox(dest, 0.05f, 0.64f, 0.05f, -0.32f+x_offset, 0.64f, 0f, 0, 0, 0, "white_metal.png");
+    }
+    
+    public TransformGroup getPanel(float x, float y, float z, int rotation){
+        TransformGroup tg = new TransformGroup();
+        placePanel(tg, 0f);
+        TG.moveTG(tg, x, y, z);
+        TG.rotateTG(tg, 0, rotation, 0);
+        return tg;
     }
 }

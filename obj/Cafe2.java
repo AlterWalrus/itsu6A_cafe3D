@@ -1,4 +1,4 @@
- /*
+/*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
@@ -17,38 +17,27 @@ import main.TX;
  *
  * @author Israel
  */
-public class Cafe1 extends TransformGroup{
+public class Cafe2 extends TransformGroup{
     public ArrayList<CollisionBox> collBoxes;
-    public Cafe1(){
+    public Cafe2(){
         Random rand = new Random();
         collBoxes = new ArrayList<>();
         
         Box tileFloor = new Box(6f, 0.05f, 6f, TX.texCoords, TX.createAppearance("floor.png"));
-        TX.setTextureScale(tileFloor.getShape(Box.TOP), 4.0f, 4.0f);
+        //TX.setTextureScale(tileFloor.getShape(Box.TOP), 4.0f, 4.0f);
         TransformGroup tgFloor = new TransformGroup();
         tgFloor.addChild(tileFloor);
         TG.moveTG(tgFloor, 0, 0.2f, 0);
         this.addChild(tgFloor);
         
-        Box tileFloor2 = new Box(2f, 0.01f, 3f, TX.texCoords, TX.createAppearance("floor.png"));
-        TX.setTextureScale(tileFloor2.getShape(Box.TOP), 1.0f, 2.0f);
-        TransformGroup tgFloor2 = new TransformGroup();
-        tgFloor2.addChild(tileFloor2);
-        TG.moveTG(tgFloor2, 8f, 0.3f, -3);
-        this.addChild(tgFloor2);
         
         //Left n right walls
-        placeWall(0.2f, 1f, 6f, -6, 0, 0, "blueish_concrete.png");
-        placeWall(0.2f, 1f, 6f, 6, 0, 0, "blueish_concrete.png");
+        placeWall(0.2f, 1f, 6f, -6, 0, 0, "white_concrete.png");
+        placeWall(0.2f, 1f, 6f, 6, 0, 0, "white_concrete.png");
         
         //Back n front walls
-        placeWall(6f, 1f, 0.2f, 0, 0, -6, "blueish_concrete.png");
-        placeWall(4.8f, 1f, 0.2f, -1.2f, 0, 6, "blueish_concrete.png");
-        
-        //Kitchen
-        placeWall(0.2f, 2f, 3f, 10f, 1f, -3f, "blueish_concrete.png");
-        placeWall(2f, 3f, 0.2f, 8, 0, -6, "blueish_concrete.png");
-        placeWall(2f, 3f, 0.2f, 8, 0, 0, "blueish_concrete.png");
+        placeWall(6f, 1f, 0.2f, 0, 0, -6, "white_concrete.png");
+        placeWall(4.8f, 1f, 0.2f, -1.2f, 0, 6, "white_concrete.png");
         
         //Windows left
         for(int i = 0; i < 4; i++){
@@ -79,13 +68,13 @@ public class Cafe1 extends TransformGroup{
         
         //Pillars and sht
         for(int i = 0; i < 5; i++){
-            TG.placeCylinder(this, 0.25f, 2.8f, -6f, 1.4f, 6f-(i*3f), 0, 0, 0, "red_concrete.png");
+            TG.placeCylinder(this, 0.25f, 2.8f, -6f, 1.4f, 6f-(i*3f), 0, 0, 0, "orange_concrete.png");
         }
         for(int i = 0; i < 5; i++){
-            TG.placeCylinder(this, 0.25f, 4f, 3.6f, 2.0f, 6f-(i*3f), 0, 0, 0, "red_concrete.png");
+            TG.placeCylinder(this, 0.25f, 4f, 3.6f, 2.0f, 6f-(i*3f), 0, 0, 0, "orange_concrete.png");
             collBoxes.add(new CollisionBox(3.6f, 6f-(i*3f), 0.2f, 0.2f));
         }
-        TG.placeCylinder(this, 0.25f, 3f, 6f, 1.5f, 6f, 0, 0, 0, "red_concrete.png");
+        TG.placeCylinder(this, 0.25f, 3f, 6f, 1.5f, 6f, 0, 0, 0, "orange_concrete.png");
         
         //Roof (woof!)
         TG.placeBox(this, 5f, 0.1f, 8f, -3f, 3.5f, 0, 0, 0, 5, "wood.png");
@@ -106,10 +95,6 @@ public class Cafe1 extends TransformGroup{
             collBoxes.add(new CollisionBox(-4f, 4f-i*2.5f, 0.8f, 0.6f));
             collBoxes.add(new CollisionBox(-1f, 4f-i*2.5f, 0.8f, 0.6f));
         }
-        
-        
-        //Lights----------------------------------------------------------------
-        this.addChild(TG.light(0f, 1f, -3f, 1f));
     }
     
     private void placeWall(float sx, float sy, float sz, float x, float y, float z, String tex){

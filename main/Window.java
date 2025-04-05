@@ -9,22 +9,15 @@ import com.fazecast.jSerialComm.SerialPort;
 import com.sun.j3d.utils.universe.SimpleUniverse;
 import java.awt.GraphicsConfiguration;
 import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import javax.media.j3d.BranchGroup;
 import javax.media.j3d.Canvas3D;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowFocusListener;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.media.j3d.Transform3D;
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
 import javax.vecmath.Matrix3f;
+import javax.vecmath.Vector3f;
 
 /**
  *
@@ -32,6 +25,8 @@ import javax.vecmath.Matrix3f;
  */
 public class Window extends javax.swing.JFrame implements KeyListener{
     private HashMap<Integer, Boolean> keyStates = new HashMap<>();
+    
+    private float spd = 0.08f;
     private MainScene scene;
     private int playerRotation = 0;
      
@@ -59,7 +54,6 @@ public class Window extends javax.swing.JFrame implements KeyListener{
         
         this.addKeyListener(this);
         new Thread(this::updateMovement).start();
-        
         new Thread(this::updatePlayerRotation).start();
         
         this.setFocusable(true);
@@ -80,27 +74,55 @@ public class Window extends javax.swing.JFrame implements KeyListener{
     }
     
     private void updateMovement(){
-        //float spd = 0.9f;
-        float spd = 0.08f;
         Transform3D t3d = new Transform3D();
         Matrix3f mt = new Matrix3f();
+        float moveX = 0f;
+        float moveZ = 0f;
+        int keys = 0;
         while(true){
+            keys = 0;
+            moveX = 0f;
+            moveZ = 0f;
             scene.tgGroundCam.getTransform(t3d);
             t3d.getRotationScale(mt);
             
             //WASD
             if(keyStates.getOrDefault(KeyEvent.VK_W, false)){
-                TG.moveTG(scene.tgGround, -spd*mt.m02, 0, spd*mt.m00);
+                moveX += -spd*mt.m02;
+                moveZ += spd*mt.m00;
+                keys++;
             }
             if(keyStates.getOrDefault(KeyEvent.VK_S, false)){
-                TG.moveTG(scene.tgGround, spd*mt.m02, 0, -spd*mt.m00);
+                moveX += spd*mt.m02;
+                moveZ += -spd*mt.m00;
+                keys++;
             }
             if(keyStates.getOrDefault(KeyEvent.VK_A, false)){
-                TG.moveTG(scene.tgGround, spd*mt.m00, 0, spd*mt.m02);
+                moveX += spd*mt.m00;
+                moveZ += spd*mt.m02;
+                keys++;
             }
             if(keyStates.getOrDefault(KeyEvent.VK_D, false)){
-                TG.moveTG(scene.tgGround, -spd*mt.m00, 0, -spd*mt.m02);
+                moveX += -spd*mt.m00;
+                moveZ += -spd*mt.m02;
+                keys++;
             }
+            
+            //Diagonal fix
+            if(keys > 1){
+                moveX *= 0.7071f;
+                moveZ *= 0.7071f;
+            }
+            
+            //Collision (i wanna kms)
+            scene.tgGround.getTransform(t3d);
+            Vector3f pos = new Vector3f();
+            t3d.get(pos);
+            if(isColliding(pos.x+moveX, pos.z+moveZ)){
+                moveX = 0f;
+                moveZ = 0f;
+            }
+            TG.moveTG(scene.tgGround, moveX, 0, moveZ);
             
             //Arrows
             if(keyStates.getOrDefault(KeyEvent.VK_RIGHT, false)){
@@ -126,6 +148,87 @@ public class Window extends javax.swing.JFrame implements KeyListener{
         }
     }
     
+    private boolean isColliding(float posX, float posZ){
+        for(int i = 0; i < scene.collBoxes.size(); i++){
+            float x1 = scene.collBoxes.get(i).x1;
+            float z1 = scene.collBoxes.get(i).z1;
+            float x2 = scene.collBoxes.get(i).x2;
+            float z2 = scene.collBoxes.get(i).z2;
+            if(isCollidingAt(posX, posZ, x1, z1, x2, z2)){
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private boolean isCollidingAt(float posX, float posZ, float x1, float z1, float x2, float z2){
+        boolean colliding = false;
+        if((posX >= x1 && posZ >= z1) && (posX <= x2 && posZ <= z2)){
+            colliding = true;
+        }
+        return colliding;
+    }
+    
+    private class Joystick extends Thread{
+        private SerialPort serialPort;
+
+        @Override
+        public void run(){
+            Transform3D t3d = new Transform3D();
+            Matrix3f mt = new Matrix3f();
+            serialPort = SerialPort.getCommPort("COM4");
+            serialPort.setBaudRate(9600);
+            serialPort.setComPortTimeouts(SerialPort.TIMEOUT_SCANNER, 0, 0);
+
+            if(!serialPort.openPort()){
+                System.out.println("epic fail lmao");
+                return;
+            }
+            System.out.println("gud Bv");
+
+            try(BufferedReader reader = new BufferedReader(new InputStreamReader(serialPort.getInputStream()))){
+                while(true){
+                    if(serialPort.bytesAvailable() > 0){
+                        String line = reader.readLine();
+                        if(line.matches("\\d+:\\d+:\\d+:\\d+")){
+                            scene.tgGroundCam.getTransform(t3d);
+                            t3d.getRotationScale(mt);
+                            String[] values = line.split(":");
+                            float x = ((Integer.parseInt(values[0]) / 50) - 10) / 6f * spd;
+                            float y = ((Integer.parseInt(values[1]) / 50) - 10) / 6f * spd;
+                            int rotX = (Integer.parseInt(values[2]) / 100) - 5;
+                            //int rotY = (Integer.parseInt(values[3]) / 100) - 5;
+
+                            //Movement
+                            float moveX = (-x * mt.m00 + y * mt.m02);
+                            float moveY = (-x * mt.m02 - y * mt.m00);
+                            
+                            //Collision (i wanna kms) this one uses Y instead of Z so beware dat
+                            scene.tgGround.getTransform(t3d);
+                            Vector3f pos = new Vector3f();
+                            t3d.get(pos);
+                            if(isColliding(pos.x+moveX, pos.z+moveY)){
+                                moveX = 0f;
+                                moveY = 0f;
+                            }
+                            
+                            TG.moveTG(scene.tgGround, moveX, 0, moveY);
+                            
+                            //Camera
+                            TG.rotateTG(scene.tgGroundCam, 0, rotX, 0);
+                            playerRotation -= rotX;
+                        }
+                    }
+                    Thread.sleep(16);
+                }
+            }catch(Exception e){
+                System.err.println("Serial Error: " + e.getMessage());
+            }finally{
+                serialPort.closePort();
+            }
+        }
+    }
+    
     private void updatePlayerRotation(){
         int rot = 0;
         int intensity = 4;
@@ -147,79 +250,6 @@ public class Window extends javax.swing.JFrame implements KeyListener{
             }
         }
     }
-    
-    private class Joystick extends Thread{
-        private SerialPort serialPort;
-        @Override
-        public void run(){
-            Transform3D t3d = new Transform3D();
-            Matrix3f mt = new Matrix3f();
-            
-            serialPort = SerialPort.getCommPort("COM4");
-            if(serialPort.openPort()){
-                System.out.println("W");
-            }
-
-            if(serialPort == null || !serialPort.isOpen()){
-                System.out.println("epic fail lol");
-                return;
-            }
-            serialPort.setBaudRate(9600);
-            
-            try {
-                Thread.sleep(1500);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(Window.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            
-            InputStream inputStream = serialPort.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            String line = "";
-            try{
-                while(reader.ready()){
-                    reader.readLine();
-                }
-                
-                while(true){
-                    if(serialPort.bytesAvailable() > 0){
-                        line = reader.readLine();
-                        if(line != null && !line.isEmpty()){
-                            line = line.replaceAll("[^0-9:\\-]", "").trim();
-                            if(line.matches("\\d+:\\d+")){
-                                scene.tgGroundCam.getTransform(t3d);
-                                t3d.getRotationScale(mt);
-                                
-                                String[] values = line.split(":");
-                                int x = (Integer.parseInt(values[0]) / 100) - 5;
-                                int y = (Integer.parseInt(values[1]) / 100) - 5;
-                                
-                                float moveX = -x * mt.m00 + y * mt.m02;
-                                float moveY = -x * mt.m02 - y * mt.m00;
-                                
-                                TG.moveTG(scene.tgGround, (moveX/30.0f), 0, (moveY/30.0f));
-                                //TG.rotateTG(scene.tgGroundCam, 0, x, 0);
-                            }else{
-                                System.out.println("shit went bad: " + line);
-                            }
-                        }
-                    }else{
-                        Thread.sleep(10);
-                    }
-                }
-            }catch (IOException | InterruptedException ex) {
-                System.out.println("Error reading from serial port: " + ex.getMessage());
-            } finally {
-                try {
-                    reader.close();
-                    inputStream.close();
-                    serialPort.closePort();
-                } catch (IOException ex) {
-                    System.out.println("Failed to close resources: " + ex.getMessage());
-                }
-            }
-        }
-    }
-    
 
     /**
      * This method is called from within the constructor to initialize the form.
